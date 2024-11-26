@@ -10,18 +10,25 @@ body {
   transform: none;
 }
 
-div.react-tweet-theme {
-  --tweet-container-margin: 0px;
+a {
+  text-decoration: none;
 }
 
-a[class^="tweet-info_infoLink"] {
-  opacity: 0;
-  pointer-events: none;
+.bsky-react-post-theme a:first-child p {
+  color: var(--post-font-color);
 }
-
-div[class^="tweet-header_authorFollow"],
-a[class^="tweet-header_brand"] {
-  display: none;
+/* https://github.com/rhinobase/react-bluesky/pull/3 */
+[class^="embed-module_starterPackImage"],
+[class^="embed-module_externalThumbnail"] {
+  max-width: 100%;
+}
+[class^="link-module_link"],
+[class^="embed-module_externalTitle"] {
+  color: var(--post-font-color);
+}
+[class^="post-module_avatar"] img {
+  width: 40px;
+  height: 40px;
 }
 
 /* Credit to https://codepen.io/jh3y/pen/jORQyzZ */

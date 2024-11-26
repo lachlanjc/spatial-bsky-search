@@ -17,13 +17,20 @@
     // What to do with the terminal pane and tab, after the command was started:
     // * `always` — always show the terminal pane, add and focus the corresponding task's tab in it (default)
     // * `never` — avoid changing current terminal pane focus, but still add/reuse the task's tab there
-    "reveal": "never"
+    "reveal": "always"
   },
   {
     "label": "Run embeddings script",
     "command": "bun run lib/tasks/embed.js",
     "use_new_terminal": false,
     "allow_concurrent_runs": false,
-    "reveal": "never"
+    "reveal": "always"
+  },
+  {
+    "label": "Peek at ChromaDB",
+    "command": "bun run lib/tasks/peek.js",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
   }
 ]

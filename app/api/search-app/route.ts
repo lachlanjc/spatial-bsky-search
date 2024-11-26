@@ -31,7 +31,7 @@ function normalize(arrayOfNumbers: number[][]) {
 
 export async function queryTweets(query: string) {
   const client = new ChromaClient();
-  const COLLECTION_NAME = "tweet-canvas";
+  const COLLECTION_NAME = "bluesky-canvas";
 
   // initialize embedder to create embeddings from user query
   // const embedder = new OpenAIEmbeddingFunction({

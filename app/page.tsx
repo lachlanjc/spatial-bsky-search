@@ -10,7 +10,8 @@ import {
 } from "react";
 import { useTheme } from "next-themes";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MyTweet } from "@/app/tweet";
+import { EmbeddedPost } from "bsky-react-post";
+import type { AppBskyFeedDefs } from "@atproto/api";
 
 import {
   Text,
@@ -24,7 +25,6 @@ import {
   IconButton,
   type ButtonProps,
 } from "@radix-ui/themes";
-
 import {
   ReactFlow,
   Controls,
@@ -35,7 +35,6 @@ import {
   MiniMap,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { EnrichedTweet } from "react-tweet";
 import { CrossCircledIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
 
 const SUGGESTED_SEARCHES: Record<string, ButtonProps["color"]> = {
@@ -44,33 +43,35 @@ const SUGGESTED_SEARCHES: Record<string, ButtonProps["color"]> = {
   CSS: "orange",
   JavaScript: "yellow",
   Figma: "green",
-  design: "blue",
+  Bluesky: "blue",
   animation: "indigo",
-  visionOS: "violet",
+  design: "violet",
 };
 
 interface Result {
   id: string;
   fitting: [number, number];
-  metadata: {
-    bookmarked: boolean;
-    favorited: boolean;
-    retweeted: boolean;
-  };
-  tweet: EnrichedTweet;
+  // metadata: {
+  //   bookmarked: boolean;
+  //   favorited: boolean;
+  //   retweeted: boolean;
+  // };
+  post: AppBskyFeedDefs.ThreadViewPost;
 }
 
-function TweetNode({
-  data: { tweet },
+function PostNode({
+  data,
 }: {
-  data: Pick<Result, "tweet" | "metadata">;
+  // data: Pick<Result, "post" | "metadata">;
+  data: Result; // ["post"];
 }) {
-  return <MyTweet tweet={tweet} />;
+  console.log(data);
+  return <EmbeddedPost thread={data} />;
 }
 
-const nodeTypes = { tweet: TweetNode };
-const [GRID_WIDTH, GRID_HEIGHT] = [550 + 55, 55 * 2];
-const GRID_POSITION_HEIGHT = 55 * 6;
+const nodeTypes = { post: PostNode };
+const [GRID_WIDTH, GRID_HEIGHT] = [600 + 50, 50 * 2];
+const GRID_POSITION_HEIGHT = 50 * 6;
 
 function positionItems(items: Array<Result>) {
   if (!Array.isArray(items) || items.length === 0) {
@@ -99,9 +100,9 @@ function positionItems(items: Array<Result>) {
     seenCoords.add(coordKey);
     return {
       id: item.id,
-      type: "tweet",
+      type: "post",
       data: {
-        tweet: item.tweet,
+        post: item.post,
         // metadata: item.metadata,
       },
       position: { x, y },
@@ -111,7 +112,7 @@ function positionItems(items: Array<Result>) {
   return nodes;
 }
 
-function searchTweets(
+function searchPosts(
   params: URLSearchParams,
   setNodes: (typeof useNodesState)[1],
   setIsLoading: Dispatch<SetStateAction<boolean>>,
@@ -128,7 +129,7 @@ const FORM_STATE = {
   kind: "any",
   link: "any",
   media: "any",
-  interaction: "any",
+  // interaction: "any",
 };
 
 export default function Page() {
@@ -150,7 +151,7 @@ export default function Page() {
       }
       startTransition(() => {
         const params = new URLSearchParams();
-        const { q, interaction, kind, media, link } = {
+        const { q, kind, media, link } = {
           ...formState,
           // @ts-expect-error we know it's a field of FORM_STATE
           [field]: newValue,
@@ -160,14 +161,14 @@ export default function Page() {
         params.set("kind", kind);
         params.set("link", link);
         params.set("media", media);
-        params.set("interaction", interaction);
+        // params.set("interaction", interaction);
 
         if (q.trim().length === 0) {
           // router.replace("/");
           setNodes([]);
           setIsLoading(false);
         } else {
-          searchTweets(params, setNodes, setIsLoading);
+          searchPosts(params, setNodes, setIsLoading);
           router.replace(`/?${params.toString()}`);
         }
       });
@@ -183,12 +184,12 @@ export default function Page() {
       const kind = searchParams.get("kind") || FORM_STATE.kind;
       const link = searchParams.get("link") || FORM_STATE.link;
       const media = searchParams.get("media") || FORM_STATE.media;
-      const interaction =
-        searchParams.get("interaction") || FORM_STATE.interaction;
-      setFormState({ q, interaction, media, kind, link });
+      // const interaction =
+      //   searchParams.get("interaction") || FORM_STATE.interaction;
+      setFormState({ q, media, kind, link });
       // TODO: Sanitize input
       startTransition(() => {
-        searchTweets(searchParams, setNodes, setIsLoading);
+        searchPosts(searchParams, setNodes, setIsLoading);
       });
     }
   }, []);
@@ -245,7 +246,7 @@ export default function Page() {
             </div>
             <Container maxWidth="680px">
               <TextField.Root
-                placeholder="Search tweets…"
+                placeholder="Search posts…"
                 variant="classic"
                 type="search"
                 id="search"
@@ -289,7 +290,7 @@ export default function Page() {
                   )}
                 </TextField.Slot>
               </TextField.Root>
-              <Grid columns="4" gap="3" mt="3">
+              <Grid columns="3" gap="3" mt="3">
                 <Select.Root
                   name="kind"
                   defaultValue="any"
@@ -325,11 +326,13 @@ export default function Page() {
                   <Select.Content variant="soft" position="popper">
                     <Select.Item value="any">Any media</Select.Item>
                     <Select.Item value="photo">Has photo</Select.Item>
-                    <Select.Item value="gif">Has GIF</Select.Item>
+                    <Select.Item value="gif" disabled>
+                      Has GIF
+                    </Select.Item>
                     <Select.Item value="video">Has video</Select.Item>
                   </Select.Content>
                 </Select.Root>
-                <Select.Root
+                {/* <Select.Root
                   name="interaction"
                   defaultValue="any"
                   onValueChange={(val) => searchFormWith("interaction", val)}
@@ -339,9 +342,8 @@ export default function Page() {
                     <Select.Item value="any">Any interaction</Select.Item>
                     <Select.Item value="favorited">Liked</Select.Item>
                     <Select.Item value="bookmarked">Bookmarked</Select.Item>
-                    {/* <Select.Item value="retweeted">Retweeted</Select.Item> */}
                   </Select.Content>
-                </Select.Root>
+                </Select.Root> */}
               </Grid>
             </Container>
           </form>
@@ -351,7 +353,7 @@ export default function Page() {
             !isLoading &&
             (formState.q.trim().length > 0 ? (
               <Text size="3" color="gray" mb="4">
-                No tweets found
+                No posts found
               </Text>
             ) : (
               <Flex direction="column" align="center" gap="4" p="4">
@@ -365,6 +367,7 @@ export default function Page() {
                       radius="full"
                       color={SUGGESTED_SEARCHES[topic]}
                       onClick={() => searchFormWith("q", topic)}
+                      key={topic}
                     >
                       {topic}
                     </Button>

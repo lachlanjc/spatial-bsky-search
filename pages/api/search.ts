@@ -10,7 +10,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { ChromaClient, IncludeEnum, OpenAIEmbeddingFunction } from "chromadb";
 import type { Where } from "chromadb";
 import { UMAP } from "umap-js";
-import db from "@/lib/db/tweets-processed.json";
+import db from "@/lib/db/likes.json";
 
 function normalize(fitting: number[][]) {
   // find max and min in the array
@@ -33,7 +33,7 @@ function normalize(fitting: number[][]) {
   return fitting;
 }
 
-export async function queryTweets(
+export async function queryPosts(
   query: string,
   qFilters: {
     kind: string;
@@ -43,7 +43,7 @@ export async function queryTweets(
   },
 ) {
   const client = new ChromaClient();
-  const COLLECTION_NAME = "tweet-canvas";
+  const COLLECTION_NAME = "bluesky-canvas";
 
   // initialize embedder to create embeddings from user query
   const embedder = new OpenAIEmbeddingFunction({
@@ -69,8 +69,8 @@ export async function queryTweets(
   }
   switch (qFilters.link) {
     case "url":
-      // filters.hasUrl = true;
-      query += " https://";
+      filters.hasLink = true;
+      // query += " https://";
       break;
     case "hashtag":
       filters.hasHashtag = true;
@@ -91,14 +91,14 @@ export async function queryTweets(
       filters.isReply = true;
       break;
   }
-  if (
-    qFilters.interaction != null &&
-    ["liked", "bookmarked", "retweeted"].includes(
-      qFilters.interaction.toString(),
-    )
-  ) {
-    filters[qFilters.interaction] = true;
-  }
+  // if (
+  //   qFilters.interaction != null &&
+  //   ["liked", "bookmarked", "retweeted"].includes(
+  //     qFilters.interaction.toString(),
+  //   )
+  // ) {
+  //   filters[qFilters.interaction] = true;
+  // }
 
   const where: Where = {};
   if (Object.keys(filters).length > 1) {
@@ -111,14 +111,14 @@ export async function queryTweets(
     where[k] = { $eq: Number(v) };
   }
 
-  console.log(qFilters, filters, JSON.stringify(where, null, 2));
+  console.log(query, qFilters, filters, JSON.stringify(where, null, 2));
 
   // query items in ChromaDB with give query phrase
   const items = await collection.query({
-    nResults: 25,
+    nResults: 24,
     queryTexts: query,
     include: [IncludeEnum.Embeddings, IncludeEnum.Metadatas],
-    where,
+    where: {},
   });
 
   if (items.ids == null || items.ids?.length === 0) {
@@ -139,14 +139,13 @@ export async function queryTweets(
   const records = (items.ids[0] ?? [])
     .map((id, i) => {
       // const metadata = items.metadatas[0][i];
-      const tweet = db.find((tweet) => tweet.id_str === id);
-      if (!tweet) return null;
-      if (tweet.user.screen_name === "_artsartsarts") return null;
+      const post = db.find((post) => post.uri === id);
+      if (!post) return null;
       return {
         id,
         fitting: [0, 0],
         // metadata,
-        tweet,
+        post,
       };
     })
     .filter(Boolean);
@@ -194,7 +193,7 @@ export default async function GET(req: NextApiRequest, res: NextApiResponse) {
       .json({ error: "Please provide longer search query phrase" });
   }
 
-  const results = await queryTweets(query.toString(), {
+  const results = await queryPosts(query.toString(), {
     kind,
     link,
     media,
